@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>ระบบเช็คชื่อนักเรียน 1ทด2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 5px;
+            font-size: 1.8em;
+        }
+
+        .header .class-info {
+            color: #764ba2;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .header .teacher-info {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+        }
+
+        .date-time {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+
+        .scanner-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .scanner-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .mode-switch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .mode-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .mode-container {
+            display: none;
+        }
+
+        .mode-container.active {
+            display: block;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            min-height: 300px;
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            display: block;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .scanner-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            max-width: 280px;
+            height: 180px;
+            border: 3px solid #43e97b;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(67, 233, 123, 0.6);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #43e97b, transparent);
+            box-shadow: 0 0 10px #43e97b;
+            animation: scan 2s ease-in-out infinite;
+        }
+
+        @keyframes scan {
+            0%, 100% { top: 0; }
+            50% { top: calc(100% - 3px); }
+        }
+
+        .camera-status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            z-index: 5;
+        }
+
+        .scan-info {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(67, 233, 123, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .camera-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .manual-input {
+            width: 100%;
+            padding: 15px;
+            padding-right: 45px;
+            font-size: 1.1em;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .manual-input:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.3em;
+            color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card.present {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .stat-card.absent {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+        }
+
+        .student-list-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 1em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            padding: 10px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.95em;
+            color: #666;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+
+        .student-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .student-item.present {
+            border-left: 4px solid #43e97b;
+        }
+
+        .student-item.absent {
+            border-left: 4px solid #fa709a;
+        }
+
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .student-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .student-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .student-id {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .check-time {
+            color: #43e97b;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8em;
+            border-radius: 15px;
+        }
+
+        .actions {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            left: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s;
+        }
+
+        @media (min-width: 768px) {
+            .notification {
+                left: auto;
+                max-width: 400px;
+            }
+        }
+
+        .notification.success { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .notification.error { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .notification.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+
+        @keyframes slideIn {
+            from { transform: translateY(-100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header h3 {
+            color: #667eea;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1em;
+            min-height: 100px;
+        }
+
+        .alert {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 ระบบเช็คชื่อนักเรียน</h1>
+            <div class="class-info">ห้อง 1ทด2 - สาขาเทคโนโลยีธุรกิจดิจิทัล</div>
+            <div class="teacher-info">👩‍🏫 ครูที่ปรึกษา: นางกรรณิกา ดาวดวงน้อย</div>
+            <div class="date-time" id="dateTime"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="scanner-section">
+                <h2>🎯 เช็คชื่อ</h2>
+
+                <div class="mode-switch">
+                    <button class="mode-btn active" onclick="switchMode('manual')">⌨️ พิมพ์รหัส</button>
+                    <button class="mode-btn" onclick="switchMode('camera')">📷 สแกนกล้อง</button>
+                </div>
+
+                <div class="mode-container active" id="manualMode">
+                    <div class="alert alert-info">
+                        💡 พิมพ์หรือสแกนรหัส 11 หลัก แล้วกด Enter
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="text" class="manual-input" id="manualInput" placeholder="พิมพ์รหัสนักศึกษา..." maxlength="11" autocomplete="off">
+                        <span class="input-icon">🔢</span>
+                    </div>
+                </div>
+
+                <div class="mode-container" id="cameraMode">
+                    <div class="alert alert-success" id="scanHint" style="display:none;">
+                        ✅ รองรับทั้ง บาร์โค้ด และ QR Code
+                    </div>
+                    
+                    <div class="camera-container">
+                        <video id="video" autoplay playsinline muted></video>
+                        <canvas id="canvas"></canvas>
+                        <div class="scanner-overlay" id="scannerOverlay" style="display:none;">
+                            <div class="scan-line"></div>
+                        </div>
+                        <div class="camera-status" id="cameraStatus">
+                            <div style="font-size:2.5em;margin-bottom:10px;">📷</div>
+                            <div>กดปุ่ม "เปิดกล้อง"</div>
+                        </div>
+                        <div class="scan-info" id="scanInfo" style="display:none;">
+                            🔍 พร้อมสแกน
+                        </div>
+                    </div>
+
+                    <div class="camera-controls">
+                        <button class="btn btn-primary" id="startCamera">📷 เปิดกล้อง</button>
+                        <button class="btn btn-danger" id="stopCamera" disabled>⏹️ ปิดกล้อง</button>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card present">
+                        <div class="stat-number" id="presentCount">0</div>
+                        <div class="stat-label">มาเรียน</div>
+                    </div>
+                    <div class="stat-card absent">
+                        <div class="stat-number" id="absentCount">30</div>
+                        <div class="stat-label">ขาดเรียน</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="student-list-section">
+                <input type="text" id="searchInput" placeholder="🔍 ค้นหา...">
+
+                <div class="tabs">
+                    <button class="tab active" data-tab="all">ทั้งหมด (30)</button>
+                    <button class="tab" data-tab="present">มาเรียน (0)</button>
+                    <button class="tab" data-tab="absent">ขาด (30)</button>
+                </div>
+                <div id="studentList"></div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-success" onclick="exportToExcel()">📊 Excel</button>
+            <button class="btn btn-warning" onclick="showHistory()">📜 ประวัติ</button>
+            <button class="btn btn-danger" onclick="resetAttendance()">🔄 รีเซ็ต</button>
+        </div>
+    </div>
+
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>✏️ แก้ไขการเช็คชื่อ</h3></div>
+            <div class="modal-body">
+                <p id="editStudentInfo" style="margin-bottom:15px;font-weight:bold;"></p>
+                <textarea id="editReason" placeholder="เช่น หนีออกจากห้อง, มาสาย, ลาป่วย..."></textarea>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:15px;">
+                <button class="btn btn-primary btn-small" onclick="closeEditModal()">ยกเลิก</button>
+                <button class="btn btn-danger btn-small" onclick="confirmEdit()">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>📜 ประวัติการแก้ไข</h3></div>
+            <div id="historyContent" style="max-height:400px;overflow-y:auto;"></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:15px;">
+                <button class="btn btn-primary btn-small" onclick="closeHistoryModal()">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script>
+const students=[{"id":"68219100031","barcode":"68219100031","name":"นางสาวชนกนันท์ ขันนาค","class":"1ทด2"},{"id":"68219100032","barcode":"68219100032","name":"นางสาวชาลิสา แก้วมณี","class":"1ทด2"},{"id":"68219100033","barcode":"68219100033","name":"นางสาวฐนัดดา พุ่มสุข","class":"1ทด2"},{"id":"68219100034","barcode":"68219100034","name":"นางสาวธัญญารัตน์ ส่าหร่ายรักษ์","class":"1ทด2"},{"id":"68219100035","barcode":"68219100035","name":"นางสาวธัญรัตน์ เจริญขาว","class":"1ทด2"},{"id":"68219100036","barcode":"68219100036","name":"นางสาวนันท์นภัส ดวงจังหวัด","class":"1ทด2"},{"id":"68219100037","barcode":"68219100037","name":"นางสาวประภัสสร พร้อมมูล","class":"1ทด2"},{"id":"68219100038","barcode":"68219100038","name":"นางสาวพรพรรณ ภู่ระหงษ์","class":"1ทด2"},{"id":"68219100039","barcode":"68219100039","name":"นางสาวภัทรวลัย วิเศษเจริญ","class":"1ทด2"},{"id":"68219100040","barcode":"68219100040","name":"นางสาวลลิตา ปัญญาลีฬหา","class":"1ทด2"},{"id":"68219100041","barcode":"68219100041","name":"นางสาววรยา ภัทรารวีย์","class":"1ทด2"},{"id":"68219100042","barcode":"68219100042","name":"นางสาววริสรา แสงสุวรรณ","class":"1ทด2"},{"id":"68219100043","barcode":"68219100043","name":"นางสาววริศรา เยสูงเนิน","class":"1ทด2"},{"id":"68219100044","barcode":"68219100044","name":"นางสาววีราภัทร เครือเทศ","class":"1ทด2"},{"id":"68219100045","barcode":"68219100045","name":"นางสาวศศิกมล แก้วสมนึก","class":"1ทด2"},{"id":"68219100046","barcode":"68219100046","name":"นางสาวศศิวิมล งางาม","class":"1ทด2"},{"id":"68219100047","barcode":"68219100047","name":"นางสาวสุพรรัตน์ พรพันเริศ","class":"1ทด2"},{"id":"68219100048","barcode":"68219100048","name":"นางสาวอรนรินทร์ คู่แจกัน","class":"1ทด2"},{"id":"68219100049","barcode":"68219100049","name":"นางสาวอัญชลีพร พุทธาสุ่น","class":"1ทด2"},{"id":"68219100050","barcode":"68219100050","name":"นายกิตติพิชญ์ ฐิตติพุฒินันท์","class":"1ทด2"},{"id":"68219100051","barcode":"68219100051","name":"นายถิรวิทย์ สิทธิขำ","class":"1ทด2"},{"id":"68219100052","barcode":"68219100052","name":"นายธนัท ทาระฐิน","class":"1ทด2"},{"id":"68219100053","barcode":"68219100053","name":"นายธีรเทพ กลั่นสกุล","class":"1ทด2"},{"id":"68219100054","barcode":"68219100054","name":"นายนพพร ตมะวิโมกษ์","class":"1ทด2"},{"id":"68219100055","barcode":"68219100055","name":"นายภีร์ภัทร ทิพย์เนตร","class":"1ทด2"},{"id":"68219100056","barcode":"68219100056","name":"นายรัฐธีร์ วัดโลก","class":"1ทด2"},{"id":"68219100057","barcode":"68219100057","name":"นายรัฐภูมิ สุวรรณสิทธิ์","class":"1ทด2"},{"id":"68219100058","barcode":"68219100058","name":"นายอมรเทพ -","class":"1ทด2"},{"id":"68219100059","barcode":"68219100059","name":"นายอมรเทพ เช้าวรรณโณ","class":"1ทด2"},{"id":"68219100060","barcode":"68219100060","name":"นายอานนท์ แซ่ลี้ (หัวหน้าห้อง)","class":"1ทด2"}];
+let attendance={},editHistory=[],currentTab='all',searchQuery='',currentEditStudent=null,isScanning=false,lastScannedCode='',lastScannedTime=0,animationId=null,video,canvas,ctx;
+function switchMode(m){document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));if(m==='manual'){document.getElementById('manualMode').classList.add('active');setTimeout(()=>document.getElementById('manualInput').focus(),100);if(isScanning)stopCamera();}else{document.getElementById('cameraMode').classList.add('active');document.getElementById('scanHint').style.display='block';}}
+document.getElementById('manualInput').addEventListener('keypress',function(e){if(e.key==='Enter'){const c=this.value.trim();if(c){processBarcode(c);this.value='';}}});
+function updateDateTime(){document.getElementById('dateTime').textContent=new Date().toLocaleString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function showNotification(m,t='success'){const e=document.querySelector('.notification');if(e)e.remove();const n=document.createElement('div');n.className=`notification ${t}`;n.textContent=m;document.body.appendChild(n);setTimeout(()=>{n.style.animation='slideIn 0.3s reverse';setTimeout(()=>n.remove(),300);},3000);}
+document.getElementById('startCamera').addEventListener('click',async function(){const b=this;video=document.getElementById('video');canvas=document.getElementById('canvas');ctx=canvas.getContext('2d');const s=document.getElementById('cameraStatus'),o=document.getElementById('scannerOverlay'),i=document.getElementById('scanInfo');try{b.disabled=true;b.innerHTML='<span class="loading-spinner"></span> กำลังเปิด...';s.innerHTML='<div style="font-size:2em;">⏳</div><div>กำลังเปิดกล้อง...</div>';const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}});video.srcObject=st;await video.play();canvas.width=video.videoWidth;canvas.height=video.videoHeight;s.style.display='none';o.style.display='block';i.style.display='block';isScanning=true;b.innerHTML='📷 เปิดกล้อง';document.getElementById('stopCamera').disabled=false;showNotification('✅ เปิดกล้องสำเร็จ!','success');scanBarcode();}catch(e){console.error('Camera error:',e);s.innerHTML=`<div style="font-size:2em;color:#fa709a;">❌</div><div>ไม่สามารถเปิดกล้องได้</div><div style="font-size:0.85em;margin-top:8px;color:#ccc;">${e.name==='NotAllowedError'?'กรุณาอนุญาตให้เข้าถึงกล้อง':e.message}</div>`;b.disabled=false;b.innerHTML='📷 เปิดกล้อง';showNotification('❌ ไม่สามารถเปิดกล้อง','error');}});
+function scanBarcode(){if(!isScanning)return;if(video.readyState===video.HAVE_ENOUGH_DATA){ctx.drawImage(video,0,0,canvas.width,canvas.height);const d=ctx.getImageData(0,0,canvas.width,canvas.height);const q=jsQR(d.data,d.width,d.height,{inversionAttempts:"dontInvert"});if(q){processBarcode(q.data);}else{scanWithZXing();}}animationId=requestAnimationFrame(scanBarcode);}
+let codeReader=null;function scanWithZXing(){if(!codeReader)codeReader=new ZXing.BrowserMultiFormatReader();try{const r=codeReader.decodeFromCanvas(canvas);if(r)processBarcode(r.text);}catch(e){}}
+function stopCamera(){isScanning=false;if(animationId){cancelAnimationFrame(animationId);animationId=null;}if(codeReader)codeReader.reset();if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null;}document.getElementById('cameraStatus').style.display='flex';document.getElementById('cameraStatus').innerHTML='<div style="font-size:2.5em;">📷</div><div>กล้องปิดแล้ว</div>';document.getElementById('scannerOverlay').style.display='none';document.getElementById('scanInfo').style.display='none';document.getElementById('startCamera').disabled=false;document.getElementById('stopCamera').disabled=true;}
+document.getElementById('stopCamera').addEventListener('click',()=>{stopCamera();showNotification('⏹️ ปิดกล้องแล้ว','warning');});
+function processBarcode(b){b=String(b).trim();const n=Date.now();if(b===lastScannedCode&&(n-lastScannedTime)<2000)return;lastScannedCode=b;lastScannedTime=n;const s=students.find(x=>x.barcode===b||x.id===b);if(s){if(attendance[s.id]){showNotification(`⚠️ ${s.name} เช็คชื่อแล้ว!`,'warning');if('vibrate'in navigator)navigator.vibrate([100,50,100]);}else{attendance[s.id]={time:new Date().toLocaleTimeString('th-TH'),date:new Date().toLocaleDateString('th-TH'),edited:false};showNotification(`✅ ${s.name} เช็คชื่อสำเร็จ!`,'success');if('vibrate'in navigator)navigator.vibrate(200);updateDisplay();}}else{showNotification(`❌ ไม่พบนักเรียน (${b})`,'error');if('vibrate'in navigator)navigator.vibrate([100,50,100,50,100]);}}
+function updateDisplay(){updateStats();updateStudentList();updateTabCounts();}
+function updateStats(){const p=Object.keys(attendance).length;document.getElementById('presentCount').textContent=p;document.getElementById('absentCount').textContent=students.length-p;}
+function updateTabCounts(){const p=Object.keys(attendance).length;document.querySelectorAll('.tab').forEach(t=>{const ty=t.dataset.tab;if(ty==='all')t.textContent=`ทั้งหมด (${students.length})`;else if(ty==='present')t.textContent=`มาเรียน (${p})`;else if(ty==='absent')t.textContent=`ขาด (${students.length-p})`;});}
+function updateStudentList(){let f=students;if(currentTab==='present')f=students.filter(s=>attendance[s.id]);else if(currentTab==='absent')f=students.filter(s=>!attendance[s.id]);if(searchQuery)f=f.filter(s=>s.name.toLowerCase().includes(searchQuery.toLowerCase())||s.id.includes(searchQuery));const l=document.getElementById('studentList');if(f.length===0){l.innerHTML='<div style="text-align:center;padding:40px;color:#999;"><div style="font-size:3em;">🔍</div><div>ไม่พบข้อมูล</div></div>';return;}l.innerHTML=f.map(s=>{const a=attendance[s.id];const i=s.name.charAt(3);return`<div class="student-item ${a?'present':'absent'}"><div class="student-info"><div class="student-avatar">${i}</div><div><div class="student-name">${s.name}</div><div class="student-id">รหัส: ${s.id}</div></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;"><div class="check-time">${a?`✓ ${a.time}`:'—'}</div>${a?`<button class="btn btn-danger btn-small" onclick="openEditModal('${s.id}')">✏️</button>`:''}</div></div>`;}).join('');}
+document.querySelectorAll('.tab').forEach(t=>{t.addEventListener('click',function(){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));this.classList.add('active');currentTab=this.dataset.tab;updateStudentList();});});
+document.getElementById('searchInput').addEventListener('input',function(e){searchQuery=e.target.value;updateStudentList();});
+function openEditModal(i){currentEditStudent=i;const s=students.find(x=>x.id===i);document.getElementById('editStudentInfo').textContent=`${s.name} (${s.id})`;document.getElementById('editReason').value='';document.getElementById('editModal').classList.add('active');}
+function closeEditModal(){document.getElementById('editModal').classList.remove('active');}
+function confirmEdit(){const r=document.getElementById('editReason').value.trim();if(!r){showNotification('⚠️ กรุณาระบุเหตุผล','warning');return;}const s=students.find(x=>x.id===currentEditStudent);const o={...attendance[currentEditStudent]};delete attendance[currentEditStudent];editHistory.push({studentId:currentEditStudent,studentName:s.name,action:'ยกเลิกการเช็คชื่อ',reason:r,oldTime:o.time,timestamp:new Date().toLocaleString('th-TH'),editor:'ครูผู้สอน'});showNotification(`✅ แก้ไข ${s.name} สำเร็จ`,'success');updateDisplay();closeEditModal();}
+function showHistory(){const c=document.getElementById('historyContent');if(editHistory.length===0)c.innerHTML='<div style="text-align:center;padding:40px;color:#999;"><div style="font-size:3em;">📜</div><div>ยังไม่มีประวัติ</div></div>';else c.innerHTML=editHistory.map((h,i)=>`<div style="padding:10px;margin-bottom:8px;background:#f8f9fa;border-radius:8px;font-size:0.85em;"><div style="font-weight:bold;color:#667eea;margin-bottom:5px;">#${editHistory.length-i} ${h.studentName}</div><div><strong>การดำเนินการ:</strong> ${h.action}</div><div><strong>เวลาเดิม:</strong> ${h.oldTime}</div><div><strong>เหตุผล:</strong> ${h.reason}</div><div style="color:#666;font-size:0.8em;">แก้ไขโดย ${h.editor} เมื่อ ${h.timestamp}</div></div>`).reverse().join('');document.getElementById('historyModal').classList.add('active');}
+function closeHistoryModal(){document.getElementById('historyModal').classList.remove('active');}
+function exportToExcel(){const d=students.map((s,i)=>{const a=attendance[s.id];return{'ลำดับ':i+1,'รหัส':s.id,'ชื่อ-สกุล':s.name,'ห้อง':s.class,'สถานะ':a?'มาเรียน':'ขาดเรียน','เวลา':a?a.time:'-','วันที่':a?a.date:'-'};});const wb=XLSX.utils.book_new();const ws=XLSX.utils.json_to_sheet(d);XLSX.utils.book_append_sheet(wb,ws,'การเข้าเรียน');if(editHistory.length>0){const h=editHistory.map((x,i)=>({'ลำดับ':i+1,'รหัส':x.studentId,'ชื่อ':x.studentName,'การดำเนินการ':x.action,'เวลาเดิม':x.oldTime,'เหตุผล':x.reason,'เวลาแก้ไข':x.timestamp}));const wh=XLSX.utils.json_to_sheet(h);XLSX.utils.book_append_sheet(wb,wh,'ประวัติแก้ไข');}const dt=new Date().toLocaleDateString('th-TH').replace(/\//g,'-');XLSX.writeFile(wb,`รายงาน_1ทด2_${dt}.xlsx`);showNotification('📊 ส่งออก Excel สำเร็จ!','success');}
+function resetAttendance(){if(confirm('รีเซ็ตข้อมูลทั้งหมด?')){attendance={};editHistory=[];updateDisplay();showNotification('🔄 รีเซ็ตสำเร็จ!','success');}}
+window.onclick=function(e){if(e.target.classList.contains('modal'))e.target.classList.remove('active');}
+updateDateTime();setInterval(updateDateTime,1000);updateDisplay();setTimeout(()=>document.getElementById('manualInput')?.focus(),500);
+window.addEventListener('beforeunload',()=>{if(isScanning)stopCamera();});
+    </script>
+</body>
+</html>
